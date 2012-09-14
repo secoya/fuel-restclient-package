@@ -179,6 +179,7 @@ class Client
 		curl_setopt($this->_http, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($this->_http, CURLOPT_CONNECTTIMEOUT_MS, $this->_connect_timeout_ms);
 		curl_setopt($this->_http, CURLOPT_POSTFIELDS, $this->_request_body);
+		curl_setopt($this->_http, CURLOPT_CAINFO, __DIR__ . DS . '../' . 'cacert.pem');
 		
 		$result = curl_exec($this->_http);
 		if($result === false) {
