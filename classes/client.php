@@ -107,6 +107,12 @@ class Client
 	protected $_request_body = null;
 
 	/**
+	 * Contains the response status code after a request
+	 * @var int The reponse code, the status code is negative, if the request has not yet finished.
+	 */
+	protected $_response_status_code = -1;
+
+	/**
 	 * Contains the response headers after a request
 	 * @var array The headers of the response, after a request has been made.
 	 */
@@ -187,7 +193,13 @@ class Client
 			throw new RestException('cURL error: ' . $error);
 		} else {
 			$this->_response_headers = curl_getinfo($this->_http);
+			$this->_response_status_code = curl_getinfo($this->_http, CURLINFO_HTTP_CODE);
 			$this->_response_body = $result;
+			
+			if($this->_response_status_code > 399) {
+				throw new HttpException("The request came back with an error", $this->_response_status_code, $this->_response_headers, $this);
+			}
+			
 			return $this;
 		}
 	}
@@ -212,6 +224,11 @@ class Client
 	public function get_response_body()
 	{
 		return $this->_response_body;
+	}
+
+	public function get_response_status_code()
+	{
+		return $this->_response_status_code;
 	}
 
 	/**
