@@ -186,20 +186,20 @@ class Client
 		curl_setopt($this->_http, CURLOPT_CONNECTTIMEOUT_MS, $this->_connect_timeout_ms);
 		curl_setopt($this->_http, CURLOPT_POSTFIELDS, $this->_request_body);
 		curl_setopt($this->_http, CURLOPT_CAINFO, __DIR__ . DS . '../' . 'cacert.pem');
+		curl_setopt($this->_http, CURLOPT_HEADER, true);
 		
 		$result = curl_exec($this->_http);
 		if($result === false) {
 			$error = curl_error($this->_http);
 			throw new RestException('cURL error: ' . $error);
 		} else {
-			$this->_response_headers = curl_getinfo($this->_http);
 			$this->_response_status_code = curl_getinfo($this->_http, CURLINFO_HTTP_CODE);
-			$this->_response_body = $result;
+			$this->parseResponse($result);
 			
 			if($this->_response_status_code > 399) {
-				throw new HttpException("The request came back with an error", $this->_response_status_code, $this->_response_headers, $this);
+				throw new HttpException("The request came back with an error, status: {$this->_response_status_code}, method: {$this->_request_method}, url: {$this->_request_url}", $this->_response_status_code, $this->_response_headers, $this);
 			}
-			
+
 			return $this;
 		}
 	}
@@ -468,6 +468,44 @@ class Client
 		curl_close($this->_http);
 		$this->_http = null;
 	}
+	
+	/**
+	 * Parse response to separate the headers and the body
+	 *
+	 * @param string $response
+	 * @return void
+	 */
+	protected function parseResponse($response) {
+		$result = str_replace("\r\n\r\nHTTP/", "\r\n\HTTP/", $response);
+		$parts = explode("\r\n\r\n", $result);
+		$this->_response_headers = $this->parseHeaders(array_shift($parts));
+		$this->_response_body = implode("\r\n\r\n", $parts);
+		return $this->_response_body;
+	}
+
+	/**
+	 * Parsing the repsonse headers.
+	 *
+	 * @param sting $headerStr
+	 * @return array Key/Value array of the headers.
+	 */
+	protected function parseHeaders($headerStr) {
+		$res = array();
+		
+		$headers = str_replace("\r","",$headerStr);
+		$headers = explode("\n", $headers);
+
+		array_shift($headers); // shifting the method and request url and protocol away.
+		
+
+		foreach($headers as $header) {
+			$h = explode(": ", $header);
+			if(!empty($h[0]) && !empty($h[1])) {
+				$res[$h[0]] = $h[1];
+			}
+		}
+		return $res;
+	}
 
 	/**
 	 * Closes the cURL handle
@@ -477,4 +515,5 @@ class Client
 	{
 		$this->close_handle();
 	}
+
 }
