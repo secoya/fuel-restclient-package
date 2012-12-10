@@ -39,7 +39,8 @@ class HttpException extends RestException
 	 */
 	public function __construct($message, $statusCode, $headers, Client $client)
 	{
-		parent::__construct($message);
+		$msg = "{$message}\nstatus: {$statusCode}\nheaders:\n".$this->headersToString($headers);
+		parent::__construct($msg);
 		$this->statusCode = $statusCode;
 		$this->headers = $headers;
 		$this->client = $client;
@@ -63,6 +64,22 @@ class HttpException extends RestException
 	public function getHeaders()
 	{
 		return $this->headers;
+	}
+
+	/**
+	 * Headers to string
+	 *
+	 * @param array<string,string> $headers
+	 * @return string
+	 */
+	private function headersToString(array $headers) {
+		$res = "";
+		foreach($headers as $key => $value) {
+			if(!is_array($value)) {
+				$res .= "\t{$key}:  {$value}\n";
+			}
+		}
+		return $res;
 	}
 
 	/**
