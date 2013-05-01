@@ -173,6 +173,7 @@ class Client
 	 * Sends the request and stores the result in $_response_body
 	 * the result can be accessed by calling get_response_body()
 	 * @see \Rest\Clinet::get_response_body()
+	 * NB! This call executes the request.
 	 *
 	 * @api
 	 * @return Rest\Client
@@ -188,9 +189,23 @@ class Client
 		curl_setopt($this->_http, CURLOPT_CAINFO, __DIR__ . DS . '../' . 'cacert.pem');
 		curl_setopt($this->_http, CURLOPT_HEADER, true);
 		
+		return $this->exec();
+	}
+
+	/**
+	 * Execute the request.
+	 * 
+	 * @api
+	 * @return Rest\Client
+	 * @throws Rest\RestExection
+	 */
+	protected function exec() {
+		curl_setopt($this->_http, CURLINFO_HEADER_OUT, true);
 		$result = curl_exec($this->_http);
 		if($result === false) {
 			$error = curl_error($this->_http);
+			var_dump(curl_getinfo($this->_http));
+			exit;
 			throw new RestException('cURL error: ' . $error);
 		} else {
 			$this->_response_status_code = curl_getinfo($this->_http, CURLINFO_HTTP_CODE);
@@ -202,6 +217,38 @@ class Client
 
 			return $this;
 		}
+	}
+
+	/**
+	 * Upload a file.
+	 * NB! This call executes the request.
+	 *
+	 * @link http://stackoverflow.com/questions/1134313/how-can-i-attach-a-file-with-a-php-curl-xml-call
+	 *
+	 * @api
+	 * @param string $filepath
+	 * @return Rest\Client
+	 * @throws Rest\RestExection
+	 */
+	public function upload($filepath)
+	{
+		$filesize = filesize($filepath);
+		$this->set_content_type('application/octet-stream');
+		$this->_request_headers['Content-Length'] = $filesize;
+
+		$headers = $this->compile_headers();
+		curl_setopt($this->_http, CURLOPT_HEADER, true);
+		curl_setopt($this->_http, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($this->_http, CURLOPT_CONNECTTIMEOUT_MS, $this->_connect_timeout_ms);
+		curl_setopt($this->_http, CURLOPT_HTTPHEADER, $headers);
+		
+		$fh = fopen($filepath, 'r');
+		curl_setopt($this->_http, CURLOPT_INFILE, $fh);
+		curl_setopt($this->_http, CURLOPT_INFILESIZE, $filesize);
+
+		$res = $this->exec();
+		fclose($fh);
+		return $res;
 	}
 
 	/**
