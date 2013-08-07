@@ -66,25 +66,25 @@ class Client
 	 * @var string The request URL
 	 */
 	protected $_request_url = null;
-	
+
 	/**
 	 * @var int The request port
 	 */
 	protected $_request_port = 80;
-	
+
 	/**
 	 * For setting the request method, use the provided class constants
 	 * @var int The HTTP Method
 	 */
 	protected $_request_method = null;
-	
+
 	/**
 	 * For setting the content-type, use the provided class constants
 	 *
 	 * @var string The request Content-Type
 	 */
 	protected $_request_content_type = null;
-	
+
 	/**
 	 * The request headers
 	 * @var array Request headers as key-value pairs
@@ -134,7 +134,7 @@ class Client
 	 * Constructs a REST client
 	 * based on cURL
 	 * @link http://dk.php.net/manual/en/book.curl.php
-	 * 
+	 *
 	 * @api
 	 * @param string $url The URL to call, can explicitly contain port
 	 * @param int $method HTTP method, use the provided class constants
@@ -188,13 +188,13 @@ class Client
 		curl_setopt($this->_http, CURLOPT_POSTFIELDS, $this->_request_body);
 		curl_setopt($this->_http, CURLOPT_CAINFO, __DIR__ . DS . '../' . 'cacert.pem');
 		curl_setopt($this->_http, CURLOPT_HEADER, true);
-		
+
 		return $this->exec();
 	}
 
 	/**
 	 * Execute the request.
-	 * 
+	 *
 	 * @api
 	 * @return Rest\Client
 	 * @throws Rest\RestExection
@@ -210,7 +210,7 @@ class Client
 		} else {
 			$this->_response_status_code = curl_getinfo($this->_http, CURLINFO_HTTP_CODE);
 			$this->parseResponse($result);
-			
+
 			if($this->_response_status_code > 399) {
 				throw new HttpException("The request came back with an error, status: {$this->_response_status_code}, method: {$this->_request_method}, url: {$this->_request_url}", $this->_response_status_code, $this->_response_headers, $this);
 			}
@@ -232,6 +232,14 @@ class Client
 	 */
 	public function upload($filepath)
 	{
+		if(strlen($filepath) == 0) {
+			throw new \InvalidArgumentException('$filepath cannot be empty');
+		}
+
+		if(!file_exists($filepath)) {
+			throw new FileNotFoundException("There is no file at $filepath");
+		}
+
 		$filesize = filesize($filepath);
 		$this->set_content_type('application/octet-stream');
 		$this->_request_headers['Content-Length'] = $filesize;
@@ -241,7 +249,7 @@ class Client
 		curl_setopt($this->_http, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($this->_http, CURLOPT_CONNECTTIMEOUT_MS, $this->_connect_timeout_ms);
 		curl_setopt($this->_http, CURLOPT_HTTPHEADER, $headers);
-		
+
 		$fh = fopen($filepath, 'r');
 		curl_setopt($this->_http, CURLOPT_INFILE, $fh);
 		curl_setopt($this->_http, CURLOPT_INFILESIZE, $filesize);
@@ -254,7 +262,7 @@ class Client
 	/**
 	 * Returns the reponse headers of the request
 	 *
-	 * @api 
+	 * @api
 	 * @return array Key-Value representation of the response headers
 	 */
 	public function get_response_headers()
@@ -436,7 +444,7 @@ class Client
 	 * Sets the content length,
 	 * calculated based on data given in $body
 	 *
-	 * @param string $body The content to calculate the content-length from. 
+	 * @param string $body The content to calculate the content-length from.
 	 * @return void
 	 */
 	protected function set_content_length($body)
@@ -451,7 +459,7 @@ class Client
 	 * used internally inside the set_body() method
 	 * @see Rest\Client::$_request_headers
 	 * @see Rest\Client::set_body()
-	 * 
+	 *
 	 * @return array cURL headers array
 	 */
 	protected function compile_headers()
@@ -515,7 +523,7 @@ class Client
 		curl_close($this->_http);
 		$this->_http = null;
 	}
-	
+
 	/**
 	 * Parse response to separate the headers and the body
 	 *
@@ -538,12 +546,12 @@ class Client
 	 */
 	protected function parseHeaders($headerStr) {
 		$res = array();
-		
+
 		$headers = str_replace("\r","",$headerStr);
 		$headers = explode("\n", $headers);
 
 		array_shift($headers); // shifting the method and request url and protocol away.
-		
+
 
 		foreach($headers as $header) {
 			$h = explode(": ", $header);
