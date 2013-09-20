@@ -204,8 +204,6 @@ class Client
 		$result = curl_exec($this->_http);
 		if($result === false) {
 			$error = curl_error($this->_http);
-			var_dump(curl_getinfo($this->_http));
-			exit;
 			throw new RestException('cURL error: ' . $error);
 		} else {
 			$this->_response_status_code = curl_getinfo($this->_http, CURLINFO_HTTP_CODE);
